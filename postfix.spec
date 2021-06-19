@@ -410,6 +410,13 @@ done
   sample_directory=%{postfix_sample_dir}                \
   readme_directory=%{postfix_readme_dir} || exit 1
 
+# SysVinit.
+%if 0%{?fedora} < 23
+# This installs into the /etc/rc.d/init.d directory
+%{__mkdir_p} %{buildroot}%{_initrddir}
+%{__install} -c %{SOURCE1} %{buildroot}%{_initrddir}/postfix
+%endif
+
 # Systemd.
 %{__mkdir_p} %{buildroot}%{_unitdir}
 %{__install} -m 644 %{SOURCE2} %{buildroot}%{_unitdir}
