@@ -377,7 +377,7 @@ LDFLAGS="%{?__global_ldflags} %{?_hardened_build:-Wl,-z,relro,-z,now}"
   AUXLIBS_PGSQL="${AUXLIBS_PGSQL}" AUXLIBS_SQLITE="${AUXLIBS_SQLITE}" \
   AUXLIBS_CDB="${AUXLIBS_CDB}"                                        \
   DEBUG="" SHLIB_RPATH="-Wl,-rpath,%{postfix_shlib_dir} ${LDFLAGS}"   \
-  OPT="${RPM_OPT_FLAGS} -fno-strict-aliasing -Wno-comment"            \
+  OPT="%{optflags} -fno-strict-aliasing -Wno-comment"            \
   POSTFIX_INSTALL_OPTS=-keep-build-mtime
 
 %{make_build}
