@@ -133,7 +133,7 @@ Postfix is a Mail Transport Agent (MTA).
 # Package: sysvinit
 # -------------------------------------------------------------------------------------------------------------------- #
 
-%if 0%{?fedora} < 23 && 0%{?rhel} < 9
+%if 0%{?fedora} < 23
 %package sysvinit
 Summary:                        SysV initscript for postfix
 BuildArch:                      noarch
@@ -597,7 +597,7 @@ exit 0
 %postun
 %systemd_postun_with_restart %{name}.service
 
-%if 0%{?fedora} < 23 && 0%{?rhel} < 9
+%if 0%{?fedora} < 23
 %post sysvinit
 /sbin/chkconfig --add postfix >/dev/null 2>&1 ||:
 
@@ -755,7 +755,7 @@ fi
 
 %ghost %attr(0644, root, root) %{_var}/lib/misc/postfix.aliasesdb-stamp
 
-%if 0%{?fedora} < 23 && 0%{?rhel} < 9
+%if 0%{?fedora} < 23
 %files sysvinit
 %{_initrddir}/postfix
 %endif
