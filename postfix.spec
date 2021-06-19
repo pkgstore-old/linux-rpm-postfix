@@ -133,7 +133,7 @@ Postfix is a Mail Transport Agent (MTA).
 # Package: sysvinit
 # -------------------------------------------------------------------------------------------------------------------- #
 
-%if 0%{?fedora} < 23
+%if 0%{?fedora} < 23 && 0%{?rhel} < 9
 %package sysvinit
 Summary:                        SysV initscript for postfix
 BuildArch:                      noarch
@@ -285,14 +285,13 @@ maps with Postfix, you need this.
   src/global/mail_params.h
 
 %if %{with pflogsumm}
-%{__gzip} -dc %{SOURCE53} | %{__tar} xf -
-pushd pflogsumm-%{pflogsumm_ver}
-%patch9 -p1 -b .datecalc
-%patch10 -p1 -b .ipv6-warnings-fix
-popd
+  %{__gzip} -dc %{SOURCE53} | %{__tar} xf -
+  pushd pflogsumm-%{pflogsumm_ver}
+  %patch9 -p1 -b .datecalc
+  %patch10 -p1 -b .ipv6-warnings-fix
+  popd
 %endif
 %patch11 -p1 -b .chroot-example-fix
-%patch12 -p1 -b .res-macros-fix
 
 for f in README_FILES/TLS_{LEGACY_,}README TLS_ACKNOWLEDGEMENTS; do
   iconv -f iso8859-1 -t utf8 -o ${f}{_,} &&
@@ -304,57 +303,57 @@ done
 unset AUXLIBS AUXLIBS_LDAP AUXLIBS_LMDB AUXLIBS_PCRE AUXLIBS_MYSQL AUXLIBS_PGSQL AUXLIBS_SQLITE AUXLIBS_CDB
 CCARGS="-fPIC -fcommon"
 %if 0%{?rhel} >= 9
-AUXLIBS=""
+  AUXLIBS=""
 %else
-AUXLIBS="-lnsl"
+  AUXLIBS="-lnsl"
 %endif
 
 %ifarch s390 s390x ppc
-CCARGS="${CCARGS} -fsigned-char"
+  CCARGS="${CCARGS} -fsigned-char"
 %endif
 
 %if %{with ldap}
-CCARGS="${CCARGS} -DHAS_LDAP -DLDAP_DEPRECATED=1 %{?with_sasl:-DUSE_LDAP_SASL}"
-AUXLIBS_LDAP="-lldap -llber"
+  CCARGS="${CCARGS} -DHAS_LDAP -DLDAP_DEPRECATED=1 %{?with_sasl:-DUSE_LDAP_SASL}"
+  AUXLIBS_LDAP="-lldap -llber"
 %endif
 %if %{with lmdb}
   CCARGS="${CCARGS} -DHAS_LMDB"
   AUXLIBS_LMDB="-llmdb"
 %endif
 %if %{with pcre}
-# -I option required for pcre 3.4 (and later?).
-CCARGS="${CCARGS} -DHAS_PCRE -I%{_includedir}/pcre"
-AUXLIBS_PCRE="-lpcre"
+  # -I option required for pcre 3.4 (and later?).
+  CCARGS="${CCARGS} -DHAS_PCRE -I%{_includedir}/pcre"
+  AUXLIBS_PCRE="-lpcre"
 %endif
 %if %{with mysql}
-CCARGS="${CCARGS} -DHAS_MYSQL -I%{_includedir}/mysql"
-AUXLIBS_MYSQL="-L%{_libdir}/mariadb -lmysqlclient -lm"
+  CCARGS="${CCARGS} -DHAS_MYSQL -I%{_includedir}/mysql"
+  AUXLIBS_MYSQL="-L%{_libdir}/mariadb -lmysqlclient -lm"
 %endif
 %if %{with pgsql}
-CCARGS="${CCARGS} -DHAS_PGSQL -I%{_includedir}/pgsql"
-AUXLIBS_PGSQL="-lpq"
+  CCARGS="${CCARGS} -DHAS_PGSQL -I%{_includedir}/pgsql"
+  AUXLIBS_PGSQL="-lpq"
 %endif
 %if %{with sqlite}
-CCARGS="${CCARGS} -DHAS_SQLITE $( pkg-config --cflags sqlite3 )"
-AUXLIBS_SQLITE="$( pkg-config --libs sqlite3 )"
+  CCARGS="${CCARGS} -DHAS_SQLITE $( pkg-config --cflags sqlite3 )"
+  AUXLIBS_SQLITE="$( pkg-config --libs sqlite3 )"
 %endif
 %if %{with cdb}
-CCARGS="${CCARGS} -DHAS_CDB $( pkg-config --cflags libcdb )"
-AUXLIBS_CDB="$( pkg-config --libs libcdb )"
+  CCARGS="${CCARGS} -DHAS_CDB $( pkg-config --cflags libcdb )"
+  AUXLIBS_CDB="$( pkg-config --libs libcdb )"
 %endif
 %if %{with sasl}
-CCARGS="${CCARGS} -DUSE_SASL_AUTH -DUSE_CYRUS_SASL -I%{_includedir}/sasl"
-AUXLIBS="${AUXLIBS} -L%{_libdir}/sasl2 -lsasl2"
-%global sasl_config_dir %{_sysconfdir}/sasl2
+  CCARGS="${CCARGS} -DUSE_SASL_AUTH -DUSE_CYRUS_SASL -I%{_includedir}/sasl"
+  AUXLIBS="${AUXLIBS} -L%{_libdir}/sasl2 -lsasl2"
+  %global sasl_config_dir %{_sysconfdir}/sasl2
 %endif
 %if %{with tls}
-if pkg-config openssl; then
-  CCARGS="${CCARGS} -DUSE_TLS $( pkg-config --cflags openssl )"
-  AUXLIBS="${AUXLIBS} $( pkg-config --libs openssl )"
-else
-  CCARGS="${CCARGS} -DUSE_TLS -I%{_includedir}/openssl"
-  AUXLIBS="${AUXLIBS} -lssl -lcrypto"
-fi
+  if pkg-config openssl; then
+    CCARGS="${CCARGS} -DUSE_TLS $( pkg-config --cflags openssl )"
+    AUXLIBS="${AUXLIBS} $( pkg-config --libs openssl )"
+  else
+    CCARGS="${CCARGS} -DUSE_TLS -I%{_includedir}/openssl"
+    AUXLIBS="${AUXLIBS} -lssl -lcrypto"
+  fi
 %endif
 %if ! %{with ipv6}
   CCARGS="${CCARGS} -DNO_IPV6"
@@ -363,7 +362,7 @@ fi
 CCARGS="${CCARGS} -DDEF_CONFIG_DIR=\\\"%{postfix_config_dir}\\\""
 CCARGS="${CCARGS} $(getconf LFS_CFLAGS)"
 %if 0%{?rhel} >= 9
-    CCARGS="${CCARGS} -DNO_NIS"
+  CCARGS="${CCARGS} -DNO_NIS"
 %endif
 LDFLAGS="%{?__global_ldflags} %{?_hardened_build:-Wl,-z,relro,-z,now}"
 
@@ -373,12 +372,12 @@ LDFLAGS="%{?__global_ldflags} %{?_hardened_build:-Wl,-z,relro,-z,now}"
 # way how to get them in.
 %{__make} -f Makefile.init makefiles shared=yes dynamicmaps=yes       \
   %{?_hardened_build:pie=yes} CCARGS="${CCARGS}" AUXLIBS="${AUXLIBS}" \
-  AUXLIBS_LDAP="${AUXLIBS_LDAP}" AUXLIBS_LMDB="${AUXLIBS_LMDB}" \
-  AUXLIBS_PCRE="${AUXLIBS_PCRE}" AUXLIBS_MYSQL="${AUXLIBS_MYSQL}" \
+  AUXLIBS_LDAP="${AUXLIBS_LDAP}" AUXLIBS_LMDB="${AUXLIBS_LMDB}"       \
+  AUXLIBS_PCRE="${AUXLIBS_PCRE}" AUXLIBS_MYSQL="${AUXLIBS_MYSQL}"     \
   AUXLIBS_PGSQL="${AUXLIBS_PGSQL}" AUXLIBS_SQLITE="${AUXLIBS_SQLITE}" \
-  AUXLIBS_CDB="${AUXLIBS_CDB}" \
-  DEBUG="" SHLIB_RPATH="-Wl,-rpath,%{postfix_shlib_dir} ${LDFLAGS}"     \
-  OPT="${RPM_OPT_FLAGS} -fno-strict-aliasing -Wno-comment"              \
+  AUXLIBS_CDB="${AUXLIBS_CDB}"                                        \
+  DEBUG="" SHLIB_RPATH="-Wl,-rpath,%{postfix_shlib_dir} ${LDFLAGS}"   \
+  OPT="${RPM_OPT_FLAGS} -fno-strict-aliasing -Wno-comment"            \
   POSTFIX_INSTALL_OPTS=-keep-build-mtime
 
 %{make_build}
