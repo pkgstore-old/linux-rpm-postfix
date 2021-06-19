@@ -88,7 +88,6 @@ Source53:                       http://jimsun.linxnet.com/downloads/pflogsumm-%{
 
 Source100:                      postfix-sasl.conf
 Source101:                      postfix-pam.conf
-
 # Signature.
 Source900:                      http://cdn.postfix.johnriley.me/mirrors/postfix-release/official/%{name}-%{version}.tar.gz.gpg2
 
@@ -942,14 +941,14 @@ fi
 - New version
   Resolves: rhbz#1813740
 
-* Fri Mar 13 2020 Package Store <pkgstore@pm.me> - 2:3.4.10-100
+* Fri Mar 13 2020 Package Store <kitsune.solar@gmail.com> - 2:3.4.10-100
 - NEW: v3.4.10.
 
-* Sun Oct 06 2019 Package Store <pkgstore@pm.me> - 2:3.4.7-100
+* Sun Oct 06 2019 Package Store <kitsune.solar@gmail.com> - 2:3.4.7-100
 - NEW: v3.4.7.
 - UPD: Added hostname as explicit requirement for the post scriptlet.
 
-* Sun Jul 14 2019 Package Store <pkgstore@pm.me> - 2:3.4.6-100
+* Sun Jul 14 2019 Package Store <kitsune.solar@gmail.com> - 2:3.4.6-100
 - UPD: MARKETPLACE.
 
 * Mon Jul  8 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.6-1
