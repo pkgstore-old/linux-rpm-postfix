@@ -6,7 +6,27 @@ It is released under the IBM Public License 1.0 which is a free software license
 
 Originally written in 1997 by Wietse Venema at the IBM Thomas J. Watson Research Center in New York, and first released in December 1998, Postfix continues as of 2020 to be actively developed by its creator and other contributors. The software is also known by its former names VMailer and IBM Secure Mailer.
 
-## How it works
+## Install
+
+### Fedora COPR
+
+```
+$ dnf copr enable pkgstore/postfix
+```
+
+### Open Build Service (OBS)
+
+```
+# Work in Progress
+```
+
+## Update
+
+```
+$ dnf upgrade -y postfix
+```
+
+## How to Build
 
 1. Get source from [src.fedoraproject.org](https://src.fedoraproject.org/rpms/postfix).
 2. Write last commit SHA from [src.fedoraproject.org](https://src.fedoraproject.org/rpms/postfix) to [CHANGELOG](CHANGELOG).
