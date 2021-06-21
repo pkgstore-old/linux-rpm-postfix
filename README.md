@@ -12,6 +12,7 @@ Originally written in 1997 by Wietse Venema at the IBM Thomas J. Watson Research
 
 ```
 $ dnf copr enable pkgstore/postfix
+$ dnf install -y postfix
 ```
 
 ### Open Build Service (OBS)
