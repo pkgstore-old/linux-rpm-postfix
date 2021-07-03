@@ -14,7 +14,6 @@
 %bcond_without pflogsumm
 
 %global sysv2systemdnvr         2.8.12-2
-%global release_prefix          100
 
 # Hardened build if not overrided.
 %{!?_hardened_build:%global _hardened_build 1}
@@ -46,6 +45,8 @@
 %global _privatelibs            libpostfix-.+\.so.*
 %global __provides_exclude      ^(%{_privatelibs})$
 %global __requires_exclude      ^(%{_privatelibs})$
+
+%global release_prefix          101
 
 Name:                           postfix
 Version:                        3.6.1
@@ -132,7 +133,7 @@ Postfix is a Mail Transport Agent (MTA).
 # Package: sysvinit
 # -------------------------------------------------------------------------------------------------------------------- #
 
-%if 0%{?fedora} < 23
+%if 0%{?fedora} < 23 && 0%{?rhel} < 9
 %package sysvinit
 Summary:                        SysV initscript for postfix
 BuildArch:                      noarch
@@ -409,8 +410,7 @@ done
   sample_directory=%{postfix_sample_dir}                \
   readme_directory=%{postfix_readme_dir} || exit 1
 
-# SysVinit.
-%if 0%{?fedora} < 23
+%if 0%{?fedora} < 23 && 0%{?rhel} < 9
 # This installs into the /etc/rc.d/init.d directory
 %{__mkdir_p} %{buildroot}%{_initrddir}
 %{__install} -c %{SOURCE1} %{buildroot}%{_initrddir}/postfix
@@ -761,7 +761,7 @@ fi
 
 %ghost %attr(0644, root, root) %{_var}/lib/misc/postfix.aliasesdb-stamp
 
-%if 0%{?fedora} < 23
+%if 0%{?fedora} < 23 && 0%{?rhel} < 9
 %files sysvinit
 %{_initrddir}/postfix
 %endif
@@ -845,6 +845,9 @@ fi
 
 
 %changelog
+* Sat Jul 03 2021 Package Store <kitsune.solar@gmail.com> - 2:3.6.1-101
+- FIX: Build on rhel < 9 // Jaroslav Škarvada <jskarvad@redhat.com>
+
 * Sat Jun 19 2021 Package Store <kitsune.solar@gmail.com> - 2:3.6.1-100
 - UPD: Move to Package Store.
 - UPD: License.
