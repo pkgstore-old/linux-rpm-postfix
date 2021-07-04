@@ -27,6 +27,13 @@ $ dnf install -y postfix
 $ dnf upgrade -y postfix
 ```
 
+## Remove
+
+```
+$ dnf erase -y postfix
+$ dnf copr remove pkgstore/postfix
+```
+
 ## How to Build
 
 1. Get source from [src.fedoraproject.org](https://src.fedoraproject.org/rpms/postfix).
