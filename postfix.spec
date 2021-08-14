@@ -46,10 +46,10 @@
 %global __provides_exclude      ^(%{_privatelibs})$
 %global __requires_exclude      ^(%{_privatelibs})$
 
-%global release_prefix          101
+%global release_prefix          100
 
 Name:                           postfix
-Version:                        3.6.1
+Version:                        3.6.2
 Release:                        %{release_prefix}%{?dist}
 Epoch:                          2
 Summary:                        Postfix Mail Transport Agent
@@ -102,6 +102,10 @@ Patch9:                         pflogsumm-1.1.5-datecalc.patch
 # rhbz#1384871, sent upstream.
 Patch10:                        pflogsumm-1.1.5-ipv6-warnings-fix.patch
 Patch11:                        postfix-3.4.4-chroot-example-fix.patch
+# Upstream patch.
+Patch12:                        postfix-3.6.2-glibc-234-build-fix.patch
+# Sent upstream.
+Patch13:                        postfix-3.6.2-whitespace-name-fix.patch
 
 # Optional patches - set the appropriate environment variables to include
 # them when building the package/spec file.
@@ -292,6 +296,8 @@ pushd pflogsumm-%{pflogsumm_ver}
 popd
 %endif
 %patch11 -p1 -b .chroot-example-fix
+%patch12 -p1 -b .glibc-234-build-fix
+%patch13 -p1 -b .whitespace-name-fix
 
 for f in README_FILES/TLS_{LEGACY_,}README TLS_ACKNOWLEDGEMENTS; do
   iconv -f iso8859-1 -t utf8 -o ${f}{_,} &&
@@ -507,7 +513,7 @@ function split_file
 pushd %{buildroot}%{postfix_config_dir}
 for map in %{?with_mysql:mysql} %{?with_pgsql:pgsql} %{?with_sqlite:sqlite} \
 %{?with_cdb:cdb} %{?with_ldap:ldap} %{?with_lmdb:lmdb} %{?with_pcre:pcre}; do
-  rm -f dynamicmaps.cf.d/"${map}" "postfix-files.d/${map}"
+  %{__rm} -f dynamicmaps.cf.d/"${map}" "postfix-files.d/${map}"
   split_file "^\s*${map}\b" "${map}" dynamicmaps.cf
   %{__sed} -i "s|postfix-${map}\\.so|%{postfix_shlib_dir}/\\0|" "dynamicmaps.cf.d/${map}"
   split_file "^\$shlib_directory/postfix-${map}\\.so:" "${map}" postfix-files
@@ -558,7 +564,7 @@ fi
 # Create self-signed SSL certificate.
 if [[ ! -f %{sslkey} ]]; then
   umask 077
-  %{_bindir}/openssl genrsa 4096 > %{sslkey} 2> /dev/null
+  %{_bindir}/openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out %{sslkey}
 fi
 
 if [[ ! -f %{sslcert} ]]; then
@@ -567,9 +573,11 @@ if [[ ! -f %{sslcert} ]]; then
     FQDN=localhost.localdomain
   fi
 
-  %{_bindir}/openssl req -new -key %{sslkey} -x509 -sha256 -days 365 -set_serial ${RANDOM} -out %{sslcert} \
-    -subj "/C=--/ST=SomeState/L=SomeCity/O=SomeOrganization/OU=SomeOrganizationalUnit/CN=${FQDN}/emailAddress=root@${FQDN}"
-  %{__chmod} 644 %{sslcert}
+  req_cmd="%{_bindir}/openssl req -new -key %{sslkey} -x509 -sha256 -days 365 -set_serial ${RANDOM} -out %{sslcert} \
+    -subj /C=--/ST=SomeState/L=SomeCity/O=SomeOrganization/OU=SomeOrganizationalUnit/CN=${FQDN}/emailAddress=root@${FQDN}"
+# openssl-3.0 and fallback for backward compatibility with openssl < 3.0
+  ${req_cmd} -noenc -copy_extensions none 2>/dev/null || ${req_cmd}
+  chmod 644 %{sslcert}
 fi
 
 exit 0
@@ -845,6 +853,29 @@ fi
 
 
 %changelog
+* Sat Aug 14 2021 Package Store <kitsune.solar@gmail.com> - 2:3.6.2-100
+- UPD: SPEC-file.
+
+* Thu Aug 05 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-5
+- Fixed cleanup crash when processing messages with whitespace only fullname
+- Fixed whitespaces in the glibc-234-build-fix patch
+
+* Thu Aug 05 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-4
+- Updated patch fixing FTBFS with the glibc-2.34
+
+* Tue Aug 03 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-3
+- Fixed openssl req parameters
+
+* Mon Aug 02 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-2
+- Fixed scriptlets to work with openssl-3.0
+
+* Thu Jul 29 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-1
+- New version
+  Resolves: rhbz#1985778
+
+* Fri Jul 23 2021 Fedora Release Engineering <releng@fedoraproject.org> - 2:3.6.1-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
+
 * Sat Jul 03 2021 Package Store <kitsune.solar@gmail.com> - 2:3.6.1-101
 - FIX: Build on rhel < 9 // Jaroslav Škarvada <jskarvad@redhat.com>
 
