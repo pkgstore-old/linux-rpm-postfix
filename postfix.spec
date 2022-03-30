@@ -49,7 +49,7 @@
 %global release_prefix          100
 
 Name:                           postfix
-Version:                        3.6.2
+Version:                        3.7.0
 Release:                        %{release_prefix}%{?dist}
 Epoch:                          2
 Summary:                        Postfix Mail Transport Agent
@@ -67,7 +67,10 @@ Requires(preun):                %{_sbindir}/alternatives
 Requires(preun):                systemd
 Requires(postun):               systemd
 # Required by /usr/libexec/postfix/postfix-script.
-Requires:                       diffutils, findutils
+Requires:                       diffutils
+Requires:                       findutils
+# For restorecon.
+Requires:                       policycoreutils
 Provides:                       MTA smtpd smtpdaemon server(smtp)
 
 Source0:                        http://cdn.postfix.johnriley.me/mirrors/postfix-release/official/%{name}-%{version}.tar.gz
@@ -86,26 +89,22 @@ Source5:                        postfix-chroot-update
 Source53:                       http://jimsun.linxnet.com/downloads/pflogsumm-%{pflogsumm_ver}.tar.gz
 
 # Sources >= 100 are config files.
-
 Source100:                      postfix-sasl.conf
 Source101:                      postfix-pam.conf
-# Signature.
-Source900:                      http://cdn.postfix.johnriley.me/mirrors/postfix-release/official/%{name}-%{version}.tar.gz.gpg2
 
 # Patches.
-
-Patch1:                         postfix-3.5.0-config.patch
+Patch1:                         postfix-3.7.0-config.patch
 Patch2:                         postfix-3.4.0-files.patch
 Patch3:                         postfix-3.3.3-alternatives.patch
-Patch4:                         postfix-3.4.0-large-fs.patch
+Patch4:                         postfix-3.7.0-large-fs.patch
 Patch9:                         pflogsumm-1.1.5-datecalc.patch
 # rhbz#1384871, sent upstream.
 Patch10:                        pflogsumm-1.1.5-ipv6-warnings-fix.patch
 Patch11:                        postfix-3.4.4-chroot-example-fix.patch
-# Upstream patch.
-Patch12:                        postfix-3.6.2-glibc-234-build-fix.patch
 # Sent upstream.
-Patch13:                        postfix-3.6.2-whitespace-name-fix.patch
+Patch12:                        postfix-3.7.0-whitespace-name-fix.patch
+# rhbz#1931403, sent upstream.
+Patch13:                        pflogsumm-1.1.5-syslog-name-underscore-fix.patch
 
 # Optional patches - set the appropriate environment variables to include
 # them when building the package/spec file.
@@ -296,8 +295,8 @@ pushd pflogsumm-%{pflogsumm_ver}
 popd
 %endif
 %patch11 -p1 -b .chroot-example-fix
-%patch12 -p1 -b .glibc-234-build-fix
-%patch13 -p1 -b .whitespace-name-fix
+%patch12 -p1 -b .whitespace-name-fix
+%patch13 -p1 -b .pflogsumm-1.1.5-syslog-name-underscore-fix
 
 for f in README_FILES/TLS_{LEGACY_,}README TLS_ACKNOWLEDGEMENTS; do
   iconv -f iso8859-1 -t utf8 -o ${f}{_,} &&
@@ -306,6 +305,7 @@ done
 
 
 %build
+%set_build_flags
 unset AUXLIBS AUXLIBS_LDAP AUXLIBS_LMDB AUXLIBS_PCRE AUXLIBS_MYSQL AUXLIBS_PGSQL AUXLIBS_SQLITE AUXLIBS_CDB
 CCARGS="-fPIC -fcommon"
 %if 0%{?rhel} >= 9
@@ -370,7 +370,7 @@ CCARGS="${CCARGS} $(getconf LFS_CFLAGS)"
 %if 0%{?rhel} >= 9
   CCARGS="${CCARGS} -DNO_NIS"
 %endif
-LDFLAGS="%{?__global_ldflags} %{?_hardened_build:-Wl,-z,relro,-z,now}"
+LDFLAGS="${LDFLAGS} %{?_hardened_build:-Wl,-z,relro,-z,now}"
 
 # SHLIB_RPATH is needed to find private libraries.
 # LDFLAGS are added to SHLIB_RPATH because the postfix build system
@@ -383,7 +383,7 @@ LDFLAGS="%{?__global_ldflags} %{?_hardened_build:-Wl,-z,relro,-z,now}"
   AUXLIBS_PGSQL="${AUXLIBS_PGSQL}" AUXLIBS_SQLITE="${AUXLIBS_SQLITE}" \
   AUXLIBS_CDB="${AUXLIBS_CDB}"                                        \
   DEBUG="" SHLIB_RPATH="-Wl,-rpath,%{postfix_shlib_dir} ${LDFLAGS}"   \
-  OPT="${RPM_OPT_FLAGS} -fno-strict-aliasing -Wno-comment"            \
+  OPT="${CFLAGS} -fno-strict-aliasing -Wno-comment"                   \
   POSTFIX_INSTALL_OPTS=-keep-build-mtime
 
 %{make_build}
@@ -576,7 +576,7 @@ if [[ ! -f %{sslcert} ]]; then
   req_cmd="%{_bindir}/openssl req -new -key %{sslkey} -x509 -sha256 -days 365 -set_serial ${RANDOM} -out %{sslcert} \
     -subj /C=--/ST=SomeState/L=SomeCity/O=SomeOrganization/OU=SomeOrganizationalUnit/CN=${FQDN}/emailAddress=root@${FQDN}"
 # openssl-3.0 and fallback for backward compatibility with openssl < 3.0
-  ${req_cmd} -noenc -copy_extensions none 2>/dev/null || ${req_cmd}
+  $req_cmd -noenc -copy_extensions none 2>/dev/null || $req_cmd 2>/dev/null || echo "openssl req failed"
   chmod 644 %{sslcert}
 fi
 
@@ -611,7 +611,7 @@ exit 0
 %postun
 %systemd_postun_with_restart %{name}.service
 
-%if 0%{?fedora} < 23
+%if 0%{?fedora} < 23 && 0%{?rhel} < 9
 %post sysvinit
 /sbin/chkconfig --add postfix >/dev/null 2>&1 ||:
 
@@ -853,20 +853,50 @@ fi
 
 
 %changelog
-* Sat Aug 14 2021 Package Store <kitsune.solar@gmail.com> - 2:3.6.2-100
-- UPD: SPEC-file.
+* Wed Mar 30 2022 Package Store <pkgstore@mail.ru> - 2:3.7.0-100
+- Rebuild by Package Store.
 
-* Thu Aug 05 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-5
+* Tue Feb 22 2022 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.7.0-1
+- New version
+  Resolves: rhbz#2051046
+
+* Thu Jan 20 2022 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.4-1
+- New version
+  Resolves: rhbz#2040977
+- Suppressed openssl output during SSL certificates generation
+  Resolves: rhbz#2041589
+
+* Mon Jan 17 2022 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.3-5
+- Fixed pflogsumm to allow underscores in the syslog_name
+  Resolves: rhbz#1931403
+
+* Tue Dec 14 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.3-4
+- Added SELinux workound for systemd service to work after 'postfix start'
+
+* Wed Dec 08 2021 Timm Bäder <tbaeder@redhat.com> - 2:3.6.3-3
+- Use %%set_build_flags to set all build flags
+
+* Fri Nov 12 2021 Björn Esser <besser82@fedoraproject.org> - 2:3.6.3-2
+- Rebuild(libnsl2)
+
+* Wed Nov 10 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.3-1
+- New version
+  Resolves: rhbz#2020984
+
+* Tue Sep 14 2021 Sahana Prasad <sahana@redhat.com> - 2:3.6.2-6
+- Rebuilt with OpenSSL 3.0.0
+
+* Thu Aug  5 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-5
 - Fixed cleanup crash when processing messages with whitespace only fullname
 - Fixed whitespaces in the glibc-234-build-fix patch
 
-* Thu Aug 05 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-4
+* Thu Aug  5 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-4
 - Updated patch fixing FTBFS with the glibc-2.34
 
-* Tue Aug 03 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-3
+* Tue Aug  3 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-3
 - Fixed openssl req parameters
 
-* Mon Aug 02 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-2
+* Mon Aug  2 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-2
 - Fixed scriptlets to work with openssl-3.0
 
 * Thu Jul 29 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.2-1
@@ -876,12 +906,8 @@ fi
 * Fri Jul 23 2021 Fedora Release Engineering <releng@fedoraproject.org> - 2:3.6.1-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
 
-* Sat Jul 03 2021 Package Store <kitsune.solar@gmail.com> - 2:3.6.1-101
-- FIX: Build on rhel < 9 // Jaroslav Škarvada <jskarvad@redhat.com>
-
-* Sat Jun 19 2021 Package Store <kitsune.solar@gmail.com> - 2:3.6.1-100
-- UPD: Move to Package Store.
-- UPD: License.
+* Fri Jul  2 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.1-2
+- Fixed build on rhel < 9
 
 * Mon Jun 14 2021 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.6.1-1
 - New version
