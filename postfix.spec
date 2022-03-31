@@ -46,7 +46,7 @@
 %global __provides_exclude      ^(%{_privatelibs})$
 %global __requires_exclude      ^(%{_privatelibs})$
 
-%global release_prefix          100
+%global release_prefix          1000
 
 Name:                           postfix
 Version:                        3.7.0
@@ -55,8 +55,6 @@ Epoch:                          2
 Summary:                        Postfix Mail Transport Agent
 License:                        (IBM and GPLv2+) or (EPL-2.0 and GPLv2+)
 URL:                            http://www.postfix.org
-Vendor:                         Package Store <https://pkgstore.github.io>
-Packager:                       Kitsune Solar <kitsune.solar@gmail.com>
 
 Requires(post):                 systemd systemd-sysv hostname
 Requires(post):                 %{_sbindir}/alternatives
@@ -73,12 +71,12 @@ Requires:                       findutils
 Requires:                       policycoreutils
 Provides:                       MTA smtpd smtpdaemon server(smtp)
 
-Source0:                        http://cdn.postfix.johnriley.me/mirrors/postfix-release/official/%{name}-%{version}.tar.gz
-Source1:                        postfix-etc-init.d-postfix
-Source2:                        postfix.service
+Source0:                        %{name}-%{version}.tar.xz
+Source1:                        %{name}-etc-init.d-postfix
+Source2:                        %{name}.service
 Source3:                        README-Postfix-SASL-RedHat.txt
-Source4:                        postfix.aliasesdb
-Source5:                        postfix-chroot-update
+Source4:                        %{name}.aliasesdb
+Source5:                        %{name}-chroot-update
 
 # Sources 50-99 are upstream [patch] contributions.
 
@@ -86,23 +84,23 @@ Source5:                        postfix-chroot-update
 
 # Postfix Log Entry Summarizer.
 # http://jimsun.linxnet.com/postfix_contrib.html
-Source53:                       http://jimsun.linxnet.com/downloads/pflogsumm-%{pflogsumm_ver}.tar.gz
+Source53:                       pflogsumm-%{pflogsumm_ver}.tar.xz
 
 # Sources >= 100 are config files.
-Source100:                      postfix-sasl.conf
-Source101:                      postfix-pam.conf
+Source100:                      %{name}-sasl.conf
+Source101:                      %{name}-pam.conf
 
 # Patches.
-Patch1:                         postfix-3.7.0-config.patch
-Patch2:                         postfix-3.4.0-files.patch
-Patch3:                         postfix-3.3.3-alternatives.patch
-Patch4:                         postfix-3.7.0-large-fs.patch
+Patch1:                         %{name}-3.7.0-config.patch
+Patch2:                         %{name}-3.4.0-files.patch
+Patch3:                         %{name}-3.3.3-alternatives.patch
+Patch4:                         %{name}-3.7.0-large-fs.patch
 Patch9:                         pflogsumm-1.1.5-datecalc.patch
 # rhbz#1384871, sent upstream.
 Patch10:                        pflogsumm-1.1.5-ipv6-warnings-fix.patch
-Patch11:                        postfix-3.4.4-chroot-example-fix.patch
+Patch11:                        %{name}-3.4.4-chroot-example-fix.patch
 # Sent upstream.
-Patch12:                        postfix-3.7.0-whitespace-name-fix.patch
+Patch12:                        %{name}-3.7.0-whitespace-name-fix.patch
 # rhbz#1931403, sent upstream.
 Patch13:                        pflogsumm-1.1.5-syslog-name-underscore-fix.patch
 
@@ -161,6 +159,7 @@ Obsoletes:                      postfix < 2:2.5.5-2
 Provides:                       postfix-pflogsumm = %{epoch}:%{version}-%{release}
 Obsoletes:                      postfix-pflogsumm < 2:2.5.5-2
 %endif
+
 %description perl-scripts
 This package contains perl scripts pflogsumm and qshape.
 
@@ -288,7 +287,8 @@ maps with Postfix, you need this.
   src/global/mail_params.h
 
 %if %{with pflogsumm}
-%{__gzip} -dc %{SOURCE53} | %{__tar} xf -
+# %{__gzip} -dc %{SOURCE53} | %{__tar} xf -
+%{__tar} -xJf %{SOURCE53}
 pushd pflogsumm-%{pflogsumm_ver}
 %patch9 -p1 -b .datecalc
 %patch10 -p1 -b .ipv6-warnings-fix
@@ -853,6 +853,10 @@ fi
 
 
 %changelog
+* Thu Mar 31 2022 Package Store <pkgstore@mail.ru> - 2:3.7.0-1000
+- UPD: Rebuild by Package Store.
+- UPD: File "postfix.spec".
+
 * Wed Mar 30 2022 Package Store <pkgstore@mail.ru> - 2:3.7.0-100
 - Rebuild by Package Store.
 
@@ -1001,15 +1005,39 @@ fi
 - New version
   Resolves: rhbz#1813740
 
-* Fri Mar 13 2020 Package Store <kitsune.solar@gmail.com> - 2:3.4.10-100
-- NEW: v3.4.10.
+* Thu Mar 12 2020 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.10-1
+- New version
+  Resolves: rhbz#1812987
 
-* Sun Oct 06 2019 Package Store <kitsune.solar@gmail.com> - 2:3.4.7-100
-- NEW: v3.4.7.
-- UPD: Added hostname as explicit requirement for the post scriptlet.
+* Mon Feb  3 2020 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.9-1
+- New version
+  Resolves: rhbz#1797383
+- Dropped ref-search patch (upstreamed)
+- Built with -fcommon to overcome FTBFS with gcc-10, problem reported upstream
 
-* Sun Jul 14 2019 Package Store <kitsune.solar@gmail.com> - 2:3.4.6-100
-- UPD: MARKETPLACE.
+* Thu Jan 30 2020 Fedora Release Engineering <releng@fedoraproject.org> - 2:3.4.8-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
+* Mon Dec 16 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.8-2
+- Fixed DNS resolver to use ref_search instead of ref_query
+  Resolves: rhbz#1723950
+
+* Mon Nov 25 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.8-1
+- New version
+  Resolves: rhbz#1776033
+
+* Fri Nov 01 2019 Pete Walter <pwalter@fedoraproject.org> - 2:3.4.7-3
+- Rebuild for ICU 65
+
+* Wed Sep 25 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.7-2
+- Added hostname as explicit requirement for the post scriptlet
+
+* Mon Sep 23 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.7-1
+- New version
+  Resolves: rhbz#1754198
+
+* Fri Jul 26 2019 Fedora Release Engineering <releng@fedoraproject.org> - 2:3.4.6-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
 * Mon Jul  8 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2:3.4.6-1
 - New version

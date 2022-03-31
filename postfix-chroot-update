@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
-[ -x /etc/postfix/chroot-update ] && exec /etc/postfix/chroot-update
+[[ -x /etc/postfix/chroot-update ]] && exec /etc/postfix/chroot-update
 exit 0
